@@ -1,0 +1,28 @@
+{
+  "name": "hometogether-chat-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hometogether-REFACTOR/Hometogether-Chat-Server.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Hometogether-REFACTOR/Hometogether-Chat-Server/issues"
+  },
+  "homepage": "https://github.com/Hometogether-REFACTOR/Hometogether-Chat-Server#readme",
+  "dependencies": {
+    "body-parser": "^1.20.0",
+    "dotenv": "^16.0.1",
+    "express": "^4.18.1",
+    "mongoose": "^6.4.4",
+    "mongoose-sequence": "^5.3.1",
+    "socket.io": "^4.5.1",
+    "ws": "^8.8.0"
+  }
+}
