@@ -2,6 +2,7 @@ const SocketIO=require('socket.io');
 const { models } = require('mongoose');
 const ChatRooms=require('./models/chatRooms');
 const Chats=require('./models/chats');
+
 module.exports=(server)=>{
 
     const io=SocketIO(server, {path:'/socket.io'}); // path는 client와 연결하는 경로
