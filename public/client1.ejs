@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room example</title>
+</head>
+<body>
+    <div>F12를 눌러 console탭과 network탭을 확인하세요.</div>
+    <!-- socket.io/socket.io.js는 실제 파일이 아님, 단순 클라이언트 제공 스크립트 -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+
+        const url = 'http://localhost:4500';
+        const socket=io(url,{
+            path:'/socket.io',
+            query:{
+                userId:1,
+                nickname:'solmin'
+            }
+        });
+        socket.on('connect', ()=>{
+            console.log('웹소켓 서버에 연결되었습니다.', url);
+            console.log('socket.id : ', socket.id);
+
+            socket.emit('sendMessage', {
+                sender:1,
+                receiver:{
+                    receiver_id:3
+                },
+                msg:`hello 2!`
+            })
+
+            socket.on('receiveMessage', function(data){
+                console.log(data);
+            });
+        })
+    </script>
+</body>
+</html>

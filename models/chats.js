@@ -15,21 +15,21 @@ const chats=new mongoose.Schema({
             type:Number,
             required:true
         },
-        sender_name:{
-            type:String,
-            required:true
-        }
+        // sender_nickname:{
+        //     type:String,
+        //     required:true
+        // }
     },
-    receiver:{ // 수신자 정보
-        receiver_id:{
-            type:Number,
-            required:true
-        },
-        receiver_name:{
-            type:String,
-            required:true
-        }
-    },
+    // receiver:{ // 수신자 정보
+    //     receiver_id:{
+    //         type:Number,
+    //         required:true
+    //     }
+    //     // receiver_name:{
+    //     //     type:String,
+    //     //     required:true
+    //     // }
+    // },
     msg:{
         type:String,
         required:true
@@ -63,12 +63,16 @@ chats.statics.findAll=function(){
     return this.find({});
 }
 
-chats.statics.findBychatId=function(chatId){
+chats.statics.findByChatId=function(chatId){
     return this.findOne({chatId})
 }
+chats.statics.findByChatRoomId=function(chatRoomId){
+    return this.findAll({chatRoomId})
+}
 
-chats.statics.updateBychatId=function(chatId, payload){
-    return this.findOneAndUpdate({chatId}, payload, {new:true})
+chats.statics.updateBychatRoomId=function(chatRoomId, payload){
+    console.log(chatRoomId, payload);
+    return this.update({chatRoomId: chatRoomId}, payload)
 }
 
 chats.statics.deleteBychatId=function(chatId){

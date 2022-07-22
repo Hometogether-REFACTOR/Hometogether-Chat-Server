@@ -17,8 +17,10 @@
   },
   "homepage": "https://github.com/Hometogether-REFACTOR/Hometogether-Chat-Server#readme",
   "dependencies": {
+    "bluebird": "^3.7.2",
     "body-parser": "^1.20.0",
     "dotenv": "^16.0.1",
+    "ejs": "^3.1.8",
     "express": "^4.18.1",
     "mongoose": "^6.4.4",
     "mongoose-sequence": "^5.3.1",
