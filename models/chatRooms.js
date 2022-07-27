@@ -27,7 +27,6 @@ chatRooms.statics.findAll=function(){
 };
 
 chatRooms.statics.findByUserId=function(userId){
-    console.log(`인자로 넘겨 준 userId : ${userId}`);
     return this.find({participants:userId}, {_id: 0, participants:0,createdAt:0, updatedAt:0, __v:0});
 };
 

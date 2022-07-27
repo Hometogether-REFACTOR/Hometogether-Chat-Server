@@ -66,8 +66,8 @@ chats.statics.findAll=function(){
 chats.statics.findByChatId=function(chatId){
     return this.findOne({chatId})
 }
-chats.statics.findByChatRoomId=function(chatRoomId){
-    return this.findAll({chatRoomId})
+chats.statics.findByChatRoomId=function(_chatRoomId){
+    return this.find({chatRoomId:_chatRoomId}, {_id: 0, __v:0})
 }
 
 chats.statics.updateBychatRoomId=function(chatRoomId, payload){
