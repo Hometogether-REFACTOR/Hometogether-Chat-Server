@@ -3,8 +3,7 @@ const autoIdSetter=require('../auto-id-setter'); // id autoIncrement를 위한 �
 
 const chatRooms=new mongoose.Schema({
     chatRoomId:{ // 채팅방 ID
-        type:Number,
-        required:true
+        type:Number
     },
     participants:[],// 2명의 사용자
 },

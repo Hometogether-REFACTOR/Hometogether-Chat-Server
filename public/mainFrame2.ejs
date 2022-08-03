@@ -1,0 +1,140 @@
+<script>
+		const url = 'http://localhost:4500';
+		window.onload = function () {
+			const socket = io(url, {
+				path: '/socket.io',
+				query: {
+					userId: userId,
+					nickname: nickname
+				}
+			});
+
+			socket.on('sendInitChatLog', (data) => {
+				chatLogs = data;
+
+				$('#chatRoom').empty();
+				$('#chatBoard').empty();
+
+				console.log(chatLogs);
+
+				if (chatLogs.length == 0) {
+					console.log("No chatLogs Found.");
+				} else {
+					for (chatLog of chatLogs) {
+						let option = $(`<option>${chatLog.chatRoomId}</option>`)
+						$('#chatRoom').append(option);
+					}
+
+					let selectedRoom = chatLogs.find(chatLog => chatLog.chatRoomId == $("#chatRoom").val());
+
+					for (chat of selectedRoom.chats) {
+						$("#ChatBoard").append(`<p>${chat.sender.sender_nickName}: ${chat.msg}</p>`);
+					}
+					$("#ChatBoard").scrollTop($("#ChatBoard")[0].scrollHeight);
+
+					checkMessage();
+				}
+
+			})
+
+			socket.on('receiveMessage', (chat)=>{
+				$("#notice").empty();
+				$("#notice").text(`New Message From ${chat.chatRoomId}!&nbsp;
+				msg:${chat.msg}`);
+			})
+
+			socket.on('serverResponse', data=>{
+				$("#notice").empty();
+				if(data.type=="notice"){
+					$("#notice").text(data.msg);
+				}
+			})
+
+			$("#chatRoom").on("change", function () {
+				$('#ChatBoard').empty();
+				if (chatLogs.length == 0) {
+					console.log("No chatLogs Found.");
+				} else {
+					let selectedRoom = chatLogs.find(chatLog => chatLog.chatRoomId == $("#chatRoom").val());
+
+					for (chat of selectedRoom.chats) {
+						$("#ChatBoard").append(`<p>${chat.sender.sender_id}: ${chat.msg}</p>`);
+					}
+					$("#ChatBoard").scrollTop($("#ChatBoard")[0].scrollHeight);
+					checkMessage();
+				}
+			})
+
+			$('#chatSend').on('click', function () {
+				
+				let roomId = $('#chatRoom').val();
+				let msg = document.getElementById('chatMessage').value;
+
+				socket.emit('sendMessageToRoom', {
+					sender_id: userId,
+					sender_nickName:nickname,
+					receiver_room_id: parseInt($("#chatRoom").val()),
+					msg: $("#chatMessage").val()
+				});
+				$("#chatMessage").empty();
+			});
+
+			function checkMessage(){
+				let chatRoomId = $('#chatRoom').val();
+				
+				socket.emit('checkMessage', {
+					chatRoomId:chatRoomId
+				});
+			}
+			$('#checkMessage').on('click', checkMessage);
+
+			$('#createNewRoom').on('click', function(){
+
+				let userIdToJoin=$("#userIdToJoin").val();
+				socket.emit('newRoomRequest', {
+					userIdToJoin:userIdToJoin
+				});
+				$("#userIdToJoin").empty();
+
+			})
+			$('#checkMyRoom').on('click', function(){
+				$("#notice").empty();
+				socket.emit('checkMyRoom',{})
+			})
+			$("chatMessage").empty();
+		}
+	</script>
+	<style>
+		#ChatBoard {
+			width: 500px;
+			height: 500px;
+			border: 2px solid gray;
+		}
+	</style>
+</head>
+
+<body>
+	<h2 id="Hchat">채팅방이름</h2>
+
+	<form id="form">
+		<!-- <input type="text" id="chatRoom" placeholder="채팅방명 입력"/> -->
+		<select id="chatRoom">
+			<option></option>
+		</select>
+
+		<input type="text" id="chatNickName" placeholder="이름 입력" />
+		<input type="text" id="chatMessage" placeholder="메세지 입력" />
+		<input type="button" id="chatSend" value="Send" />
+		
+	</form>
+
+	<br/>
+	<div id="ChatBoard" style="overflow:scroll;"></div>
+	<input type="button" id="checkMessage" value="메세지 확인"/>
+	<br/>
+	<input type="text" id="userIdToJoin" placeholder="함께할 친구 ID 입력" />
+	<input type="button" id="createNewRoom" value="새 방 만들기"/>
+	<br/>
+	<input type="button" id="checkMyRoom" value="채팅 알림 확인"/>
+	<h1 id="notice"></h1>
+</body>
