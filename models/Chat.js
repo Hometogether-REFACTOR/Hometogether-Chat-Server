@@ -1,33 +1,33 @@
 const mongoose = require('mongoose');
-const Schema=mongoose.Schema
+const Schema = mongoose.Schema
 
 const chatSchema = new mongoose.Schema({
-	chatRoomId: {
+	chatRoom: {
 		type: Schema.Types.ObjectId,
-		ref:'chatRoom',
-		required:[true, 'You must provide chatRoomId.'],
+		ref: 'ChatRoom',
+		required: [true, 'You must provide chatRoomId.'],
 	},
 	sender: {
-		sender_id: {
-			type: Number,
-			required: [true, 'You must provide sender_id']
-		},
-		sender_nickname:{
-			type:String,
-			required: [true, 'You must provide nickname.']
-		}
+		type: Schema.Types.ObjectId,
+		ref: 'User',
+		required: [true, 'You must provide sender ID.']
 	},
 	msg: {
 		type: String,
 		required: [true, "Don't provide empty msg."]
 	},
-	userReads:[new mongoose.Schema({
-		userId:Number,
-		isRead:{
-			type:Boolean,
-			default:false
+	userReads: [new mongoose.Schema({
+		user_id: {
+			type: Schema.Types.ObjectId,
+			ref: 'User',
+			required: [true, 'You must provide user ID.']
+		},
+		isRead: {
+			type: Boolean,
+			default: false
 		}
-	},{_id:false})]},
+	}, { _id: false })]
+},
 	{
 		timestamps: true
 	});

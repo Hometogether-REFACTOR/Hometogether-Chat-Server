@@ -18,9 +18,9 @@ const {
 	updateUserReeadsToRead
 } = require('./controllers/chats');
 const {
-  createUser, deleteUserBychatId, getAllUsers,getUserByUserId,updateUserBychatId
+  createUser, deleteUserBychatId, getAllUsers,getUser,updateUserBychatId, getUserByNickname, getBelognedRoomFromUser
 } =require('./controllers/users');
-
+const Chat = require('./models/Chat');
 
 module.exports = (server) => {
 	const io = SocketIO(server, { path: '/socket.io' }); // path는 client와 연결하는 경로	
@@ -39,37 +39,43 @@ module.exports = (server) => {
 			console.log('New client connected!', socket.id);
 		}
 
-		//새 소켓 추가
+		// 새 소켓 추가
 		USERS.push({
 			socketId: socket.id,
 			userId: socket.userId,
 			nickname: socket.nickname
 		})
 		
-		const userCheck = await getAllUsers({
-			nickname:socket.nickname
-		}).then(result => result.length)
-
-		if (!userCheck) {
-			const user = await createUser({
-				nickname:socket.nickname
+		// 새로운 유저라면 User document 생성, 그렇지 않으면 가져오기만함
+		const user = await getUserByNickname(nickname)
+			.then(async (user) => {
+				if (!user) { // 같은 닉네임을 가진 유저가 없을 때 신규 생성
+					user = await createUser({
+						nickname
+					})
+					console.log(`New user ${user.nickname} is created.`);
+				}
+				return user;
 			})
-			console.log(`User ${user.nickname} is created.`);
-		}
-
-		// let chatList = []
-		// let chatRoomList = await ChatRoom.getChatRoomByUserId(socket.userId);
-		// const promises = chatRoomList.map(async (value, index) => {
-		// 	socket.join(`Room ${value.chatRoomId}`);
-		// 	const chat = await Chat.findByChatRoomId(value.chatRoomId);
-		// 	chatList.push({
-		// 		chatRoomId: value.chatRoomId,
-		// 		chats: chat
-		// 	});
-		// })
-		// await Promise.all(promises);
-
+			.catch(err=>console.log(err))
+		
+		
+		let chatRoomIdList = []
+		// 유저가 소속된 모든 chatRoom을 population하여 가져오기
+		const chatRoomList=await getBelognedRoomFromUser(user._id)
+		chatRoomList.forEach(chatRoom => {
+			chatRoomIdList.push(chatRoom._id)
+			socket.join(`${chatRoom.name}`);
+			// const chat = await Chat.getAllChats(value.chatRoomId);
+			// chatList.push({
+			// 	chatRoomId: value.chatRoomId,
+			// 	chats: chat
+			// });
+		});
 		// 해당 유저가 소속된 모든 채팅방의 챗로그 가져오기
+		let chatList = await Chat.find({chatRoomId:{$in:chatRoomIdList}})
+			.populate("sender.sender_id")
+			.populate("chatRoomId")
 
 		socket.emit("sendInitChatLog", chatList);
 

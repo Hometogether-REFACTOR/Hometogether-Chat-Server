@@ -1,7 +1,7 @@
 const ChatRoom = require('../models/ChatRoom')
 
 const createChatRoom = async (payload) => {
-  const chatRoom = await ChatRoom(payload);
+  const chatRoom = await ChatRoom.create(payload);
   return chatRoom;
 };
 

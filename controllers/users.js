@@ -18,13 +18,24 @@ const getAllUsers = async (options) => {
   return users;
 };
 
-const getUserByUserId = async (userId) => {
-  userId = Number(userId);
-  const users = await User.find({
-    participants: {
-      $elemMatch: { participant_id: userId }
-    }
-  }, { _id: 0, participants: 0, createdAt: 0, updatedAt: 0, __v: 0 })
+const getUser = async (userId) => {
+  const users = await User.findOne({
+    _id:userId
+  }) 
+  return users
+};
+
+const getBelognedRoomFromUser=async(userId)=>{
+  const user=await User.findOne({_id:userId})
+  .populate("chatRoomBelogned")
+  .select("chatRoomBelogned")
+  return user.chatRoomBelogned;
+}
+
+const getUserByNickname = async (nickname) => {
+  const users = await User.findOne({
+    nickname:nickname
+  }) 
   return users
 };
 
@@ -40,5 +51,5 @@ const deleteUserBychatId = async (chatId) =>{
 }
 
 module.exports = {
-  getAllUsers, getUserByUserId, createUser, updateUserBychatId, deleteUserBychatId
+  getAllUsers, getUser, createUser, updateUserBychatId, deleteUserBychatId , getUserByNickname, getBelognedRoomFromUser
 }

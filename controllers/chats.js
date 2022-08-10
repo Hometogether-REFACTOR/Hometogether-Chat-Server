@@ -5,11 +5,18 @@ const createChat = async (payload) => {
 	return chat;
 };
 
-const getAllChats = async () => {
-	const chats = await Chat.find({});
-	return chats;
-}
+const getAllChats = async (options) => {
+  const { chatRoomIdList } = options;
 
+  const queryObject={}
+
+  if(chatRoomIdList){
+    queryObject.chatRoomId={$in:chatRoomIdList}
+  }
+
+  const chats = await Chat.find(queryObject);
+  return chats;
+};
 const getChat = async (chatId) => {
 	const chat = await Chat.findOne({ chatId })
 	return chat;
