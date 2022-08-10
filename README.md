@@ -11,3 +11,13 @@ MONGO_URI=mongodb://localhost:27017/chatLog
 # Client측 emit
 - checkMessage
 - error
+
+
+
+Item 을 쿼리할 때 reference를 가지고 있는 모델의 데이터를 가지고 오고 싶으면 다음과 같이 populate를 하면 된다.
+
+const item = await Item.findById(req.params.id)
+  .populate({ path: 'itemType', select: 'name' })
+  .populate({ path: 'model', select: 'name' })
+  .populate({ path: 'owner', select: 'nickName' })
+  .populate({ path: 'provisionHistory' });
