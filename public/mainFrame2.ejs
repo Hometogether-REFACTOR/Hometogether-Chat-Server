@@ -48,6 +48,13 @@
 				if(data.type=="notice"){
 					$("#notice").text(data.msg);
 				}
+				if(data.then){
+					if(data.then.name=='joinRoom'){
+						socket.emit('joinRoomRequest',{
+							roomId:data.then.roomId
+						})
+					}
+				}
 			})
 
 			$("#chatRoom").on("change", function () {
@@ -58,7 +65,7 @@
 					let selectedRoom = chatLogs.find(chatLog => chatLog.chatRoomId == $("#chatRoom").val());
 
 					for (chat of selectedRoom.chats) {
-						$("#ChatBoard").append(`<p>${chat.sender.sender_id}: ${chat.msg}</p>`);
+						$("#ChatBoard").append(`<p>${chat.sender.sender_nickName}: ${chat.msg}</p>`);
 					}
 					$("#ChatBoard").scrollTop($("#ChatBoard")[0].scrollHeight);
 					checkMessage();

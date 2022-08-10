@@ -1,5 +1,4 @@
 const SocketIO = require('socket.io');
-const { models } = require('mongoose');
 const ChatRooms = require('./models/chatRooms');
 const Chats = require('./models/chats');
 
@@ -51,8 +50,20 @@ module.exports = (server) => {
 		});
 
 		// room id가 담긴 message를 보내면 소속된 방에 emit, mongoDB에 chat기록 저장
-		socket.on('sendMessageToRoom', (data) => {
+		socket.on('sendMessageToRoom', async (data) => {
 			data = JSON.parse(JSON.stringify(data));
+			
+			participants = await ChatRooms.find({ chatRoomId: parseInt(data.receiver_room_id) })
+			.select('participants');
+
+			let userIds=[]
+			participants[0].participants.forEach((result)=>{
+				if (result.participant_id==socket.userId){
+					userIds.push({userId:result.participant_id, isRead:true});
+				}else{
+					userIds.push({userId:result.participant_id});
+				}
+			})
 
 			Chats.create({
 				chatRoomId: data.receiver_room_id,
@@ -60,12 +71,11 @@ module.exports = (server) => {
 					sender_id: data.sender_id,
 					sender_nickName:data.sender_nickName,
 				},
+				userReads:userIds,
 				msg: data.msg
 			}).then((chat) => {
-				console.log(chat);
 				socket.to(`Room${data.receiver_room_id}`)
 					.emit('receiveMessage', chat);
-
 				socket.emit('serverResponse', {
 					sender:'SERVER',
 					type:'success',
@@ -75,50 +85,59 @@ module.exports = (server) => {
 		});
 
 		// 메세지 확인 시 클라이언트 측에서 방번호(data.room_id)와 같이 전달
-		socket.on('checkMessage', (data) => {
-			console.log(`Check Message ${data.chatRoomId}`);
-			
-			//이 부분에서 해당 채팅방 document에 존재하는 모든 chat의 status를
-			//isRead:"true"로 바꿔 줘야 함
-			Chats.updateStatusToRead(socket.userId,data.chatRoomId, {
-				$set:{"status.isRead":true}
-			})
-			.then((result)=>{
-				console.log(result);
-			});
-		})
+		socket.on('checkMessage', async (data) => {
+			// console.log(`Check Message ${data.chatRoomId}`);
+			await ChatRooms.updateLastAccess(data.chatRoomId, socket.userId)
+				.catch(err=>{
+					console.log(err);
+				})
 
-		socket.on('newRoomRequest', (data)=>{
+			await Chats.updateMany({
+        chatRoomId:data.chatRoomId,
+        userReads:{$elemMatch:{"userId":socket.userId,"isRead":false}}
+    		},
+    		{'$set':{'userReads.$.isRead':true}})
+			}
+		)
+
+		socket.on('newRoomRequest', async (data)=>{
 			let {userIdToJoin}=data;
-			userIdToJoin=parseInt(userIdToJoin);
-
 			if(!userIdToJoin){
-				socket.emit('serverResponse', {
+				return socket.emit('serverResponse', {
 					sender:'SERVER',
 					type:'error',
 					msg:'User Id to join room is required.'
 				});
-				return;
-			}else if(userIdToJoin==socket.userId){
-				socket.emit('serverResponse', {
-					sender:'SERVER',
-					type:'error',
-					msg:'User Id to join room equals to your userId.'
-				});
-				return;
 			}
 
-			ChatRooms.create({
-				participants:[socket.userId, userIdToJoin]
+			let participants=[{participant_id:socket.userId}]
+
+			userIdToJoin.trim().split(/,| /).forEach(userId=>{
+				if(parseInt(userId)!=socket.userId){
+					participants.push({
+						participant_id:parseInt(userId)
+					})
+				}
+			})
+
+			await ChatRooms.create({
+				participants:participants
 			})
 			.then(result=>{
-				console.log(result);
 				socket.emit('serverResponse', {
 					sender:'SERVER',
 					type:'success',
-					msg:'Successfully create new Room with '+userIdToJoin
+					msg:'Successfully create new Room with '+userIdToJoin,
+					then:{
+						name:'joinRoom',
+						roomId:result.chatRoomId
+					}
 				});
 			});
+		})
+
+		socket.on('joinRoomRequest',data=>{
+			socket.join(`Room${data.roomId}`);
 		})
 
 		socket.on('error', (error) => {

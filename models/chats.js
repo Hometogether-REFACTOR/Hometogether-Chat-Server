@@ -24,17 +24,17 @@ const chats = new mongoose.Schema({
 		type: String,
 		required: true
 	},
+	userReads:[new mongoose.Schema({
+		userId:Number,
+		isRead:{
+			type:Boolean,
+			default:false
+		}
+	},{_id:false})],
 	status: {
-		isRead: {
-			type: Boolean,
-			default: 'false'
-		},
-		error: {
-			type: String,
-			default: 'No error'
-		},
-	}
-},
+		type: String,
+		default: 'No error'
+	}},
 	{
 		timestamps: true
 	});
@@ -61,10 +61,12 @@ chats.statics.findByChatRoomId = function (_chatRoomId) {
 }
 
 chats.statics.findYetReadChats = function (senderId, chatRoomIds) {
-	return this.find({ $and: [
-		{ chatRoomId: { $in: chatRoomIds } }, { "status.isRead": false },
-		{ "sender.sender_id":{$ne: senderId} }
-	] })
+	return this.find(
+		// { chatRoomId: { $in: chatRoomIds } ,  "status.isRead": false ,
+		//  "sender.sender_id":{$ne: senderId} }
+		{ chatRoomId: { $in: chatRoomIds },userReads:{
+			$elemMatch:{"userId":senderId, "isRead":false}} }
+	 )
 		.then(result=>{
 			return result.length;
 		})
@@ -75,12 +77,10 @@ chats.statics.updateStatusToRead = function (senderId,chatRoomId, payload) {
 	//multi:여러 개의 찾은 도큐먼트를 업데이트
 	senderId=parseInt(senderId);
 	chatRoomId = parseInt(chatRoomId);
-	console.log(senderId, chatRoomId);
 	return this.updateMany({ $and:[
 		{chatRoomId: chatRoomId }, {"sender.sender_id":{$ne: senderId}}
 	]}, payload, { upsert: false, multi: true })
 	.then(result=>{
-		console.log(result);
 	})
 }
 

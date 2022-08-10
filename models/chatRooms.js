@@ -5,7 +5,13 @@ const chatRooms=new mongoose.Schema({
     chatRoomId:{ // 채팅방 ID
         type:Number
     },
-    participants:[],// 2명의 사용자
+    participants:[new mongoose.Schema({
+        participant_id:Number,
+        last_access:{
+            type:Date,
+            default:Date.now
+        },
+    }, {_id:false})],// 2명의 사용자
 },
 {
     timestamps:true
@@ -26,7 +32,10 @@ chatRooms.statics.findAll=function(){
 };
 
 chatRooms.statics.findByUserId=function(userId){
-    return this.find({participants:userId}, {_id: 0, participants:0,createdAt:0, updatedAt:0, __v:0});
+    userId=parseInt(userId);
+    return this.find({participants:{
+        $elemMatch:{participant_id:userId}
+    }}, {_id: 0, participants:0,createdAt:0, updatedAt:0, __v:0});
 };
 
 chatRooms.statics.updateBychatId=function(chatRoomId, payload){
@@ -35,6 +44,14 @@ chatRooms.statics.updateBychatId=function(chatRoomId, payload){
 
 chatRooms.statics.deleteBychatId=function(chatId){
     return this.remove({chatId});
+}
+
+chatRooms.statics.updateLastAccess=async function(chatRoomId,userId){
+	chatRoomId = parseInt(chatRoomId);
+	userId=parseInt(userId);
+    await this.updateOne({chatRoomId: chatRoomId, "participants.participant_id":userId},
+        {'$set': {'participants.$.last_access': new Date()}}
+    );
 }
 
 // 3번째 인자로 스키마 이름을 입력, 그렇지 않으면 모두 소문자로 바꾼 후 's'를 붙여 강제 개명

@@ -9,6 +9,9 @@ router.get('/1', (req, res)=>{
 router.get('/2', (req, res)=>{
     res.render('client2',{})
 })
+router.get('/3', (req, res)=>{
+    res.render('client3',{})
+})
 // router.get('/2', (req, res)=>{
 //     res.render('client2',{})
 // })
