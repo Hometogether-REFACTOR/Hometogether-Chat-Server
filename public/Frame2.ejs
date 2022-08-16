@@ -1,0 +1,134 @@
+<script>
+  let chatList; // 모든 채팅로그를 보유하고 있는 변수
+  let user;
+  const url = 'http://localhost:4500';
+
+  window.onload = async () => {
+    const socket = io(url, {
+      path: '/socket.io',
+      query: {
+        userId,
+        nickname
+      }
+    });
+
+    socket.on('sendInitChatLog', (chatLogs) => {
+      console.log(chatLogs);
+      chatList = chatLogs.chatList
+      user = chatLogs.user
+
+      $('#chatRoom').empty();
+      
+
+      for (chatRoom of user.chatRoomBelonged) {
+        let option = $(`<option>${chatRoom.name}</option>`)
+        $('#chatRoom').append(option);
+      }
+
+      setChatLogToRoom();
+      checkMessage();
+    })
+
+    // 새 방 만들기 버튼 클릭 시
+    $('#createNewRoom').on('click', function () {
+      let userIdToJoin = $("#userIdToJoin").val();
+      let name=$("#chaRoomNameToCreate").val()
+      socket.emit('newRoomRequest', {
+        userIdToJoin,name
+      });
+      $("#userIdToJoin").empty();
+    })
+
+    // 방 번호가 바뀌었을 때
+    $("#chatRoom").on("change", function(){
+      setChatLogToRoom();
+    })
+
+    // 메세지 전송(Send) 버튼 클릭 시 
+    $('#chatSend').on('click', function () {
+      
+      let msg = document.getElementById('chatMessage').value;
+
+      let selectedRoom=user.chatRoomBelonged.find(chatRoom=>chatRoom.name==$('#chatRoom').val())
+
+      socket.emit('sendMessage', {
+        chatRoom_id:selectedRoom._id,
+        msg: $("#chatMessage").val()
+      })
+
+      $("#chatMessage").empty();
+    })
+
+    socket.on('newChat',function(data){
+      console.log('newChat')
+      chatList.push(data)
+      setChatLogToRoom();
+    })
+
+    socket.on('serverResponse', data=>{
+      $("#notice").empty();
+      $("#notice").text(data.msg);
+    })
+
+    socket.on('joinRoomRequest',(chatRoomId)=>{
+      console.log('joinRoomRequest 도착')
+      socket.emit('joinRoomResponse', chatRoomId)
+    })
+
+    // Room select 또는 초기 세팅 시 채팅 로드 함수
+    const setChatLogToRoom = () => {
+      $('#chatBoard').empty();
+      let selectedRoom = $("#chatRoom").val()
+      chatList.forEach(chat => {
+        if (chat.chatRoom_id.name == selectedRoom) {
+          $("#chatBoard").append(`<p>${chat.sender.nickname}: ${chat.msg}</p>`);
+        }
+      })
+      $("#chatBoard").scrollTop($("#chatBoard")[0].scrollHeight);
+    }
+
+    //메세지를 읽었음을 알리는 함수
+    const checkMessage = () => {
+      let selectedRoom = $('#chatRoom').val();
+
+      socket.emit('checkMessage', {
+        name: selectedRoom
+      });
+    }
+  }
+  
+</script>
+<style>
+  #chatBoard {
+    width: 500px;
+    height: 500px;
+    border: 2px solid gray;
+  }
+</style>
+
+<body>
+<h2 id="Hchat">채팅방이름</h2>
+
+<form id="form">
+  <select id="chatRoom">
+    <option></option>
+  </select>
+
+  <input type="text" id="chatMessage" placeholder="메세지 입력" />
+  <input type="button" id="chatSend" value="Send" />
+
+</form>
+
+<br />
+<div id="chatBoard" style="overflow:scroll; "></div>
+<input type="button" id="checkMessage" value="메세지 확인" />
+<br />
+<input type="text" id="chaRoomNameToCreate" placeholder="방 이름을 입력" />
+<input type="text" id="userIdToJoin" placeholder="함께할 친구 ID 입력" />
+<input type="button" id="createNewRoom" value="새 방 만들기" />
+<br />
+<input type="button" id="checkMyRoom" value="채팅 알림 확인" />
+<h1 id="notice"></h1>
+</body>
+
+</html>

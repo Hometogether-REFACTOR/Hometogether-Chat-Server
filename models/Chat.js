@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema
 
 const chatSchema = new mongoose.Schema({
-	chatRoom: {
+	chatRoom_id: {
 		type: Schema.Types.ObjectId,
 		ref: 'ChatRoom',
 		required: [true, 'You must provide chatRoomId.'],
@@ -10,7 +10,7 @@ const chatSchema = new mongoose.Schema({
 	sender: {
 		type: Schema.Types.ObjectId,
 		ref: 'User',
-		required: [true, 'You must provide sender ID.']
+		required:false
 	},
 	msg: {
 		type: String,
@@ -31,5 +31,6 @@ const chatSchema = new mongoose.Schema({
 	{
 		timestamps: true
 	});
+
 
 module.exports = mongoose.model('Chat', chatSchema)

@@ -1,24 +1,58 @@
 const Chat = require('../models/Chat');
+const ChatRoom = require('../models/ChatRoom');
+const User = require('../models/User');
 
 const createChat = async (payload) => {
+	const userReads=[]
+	const chatRoom=await ChatRoom.findOne({_id:payload.chatRoom_id})
+
+	chatRoom.participants.forEach(participant=>{
+		let isRead=false
+		if(participant.participant_id==payload.senderId){
+			isRead=true
+		}
+		userReads.push({
+			user_id:participant.participant_id,
+			isRead:false
+		})
+	})
+	payload.userReads=userReads;
+
 	const chat = await Chat.create(payload);
 	return chat;
 };
 
 const getAllChats = async (options) => {
-  const { chatRoomIdList } = options;
-
+  const { chatRoomIdList, populate } = options;
+	let chats;
   const queryObject={}
 
   if(chatRoomIdList){
-    queryObject.chatRoomId={$in:chatRoomIdList}
+    queryObject.chatRoom_id={$in:chatRoomIdList}
   }
+	if(populate){
+		chats= await Chat.find(queryObject)
+		.populate({path:"userReads.user_id",select:'_id nickname'})
+		.populate({path:'chatRoom_id',select:'_id name'})
+		.populate({path:"sender", select:"_id nickname"})
+	}else{
+		chats = await Chat.find(queryObject);
+	}
 
-  const chats = await Chat.find(queryObject);
-  return chats;
+	return chats;
 };
-const getChat = async (chatId) => {
-	const chat = await Chat.findOne({ chatId })
+
+const getChat = async (chatId, options) => {
+	const {populate}=options
+	let chat;
+	if(populate){
+		chat= await Chat.findById(chatId)
+		.populate({path:"userReads.user_id",select:'_id nickname'})
+		.populate({path:'chatRoom_id',select:'_id name'})
+		.populate({path:"sender", select:"_id nickname"})
+	}else{
+		chat = await Chat.findById(chatId)
+	}
 	return chat;
 }
 

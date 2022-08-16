@@ -21,3 +21,6 @@ const item = await Item.findById(req.params.id)
   .populate({ path: 'model', select: 'name' })
   .populate({ path: 'owner', select: 'nickName' })
   .populate({ path: 'provisionHistory' });
+
+
+mongoose pull과 pop의 차이점 : pop은 값을 하나만 제거, pull은 지정된 조건에 해당하는 객체를 삭제

@@ -1,6 +1,6 @@
 const User = require('../models/User')
 
-const createUser = async (payload) => {
+const createUser = async (payload,options) => {
   const user = await User.create(payload);
   return user;
 };
@@ -18,17 +18,26 @@ const getAllUsers = async (options) => {
   return users;
 };
 
-const getUser = async (userId) => {
-  const users = await User.findOne({
-    _id:userId
-  }) 
-  return users
-};
+const getUser = async (userId, options) => {
+  try {
+    if(!options){
+      const users = await User.findOne({_id:userId})
+      return users
+    }else if(options.populate){
+      const users = await User.findOne({_id:userId})
+        .populate({path:"chatRoomBelonged", select:"_id name"})
+      return users
+    }
+  } catch (error) {
+    console.log('userId is invalidate')
+  }
+  return false
+}
 
-const getBelognedRoomFromUser=async(userId)=>{
+const getBelognedChatRoomFromUser=async(userId)=>{
   const user=await User.findOne({_id:userId})
-  .populate("chatRoomBelogned")
-  .select("chatRoomBelogned")
+  .populate({path:"chatRoomBelonged", select:"_id, name"})
+  .select("chatRoomBelonged")
   return user.chatRoomBelogned;
 }
 
@@ -51,5 +60,5 @@ const deleteUserBychatId = async (chatId) =>{
 }
 
 module.exports = {
-  getAllUsers, getUser, createUser, updateUserBychatId, deleteUserBychatId , getUserByNickname, getBelognedRoomFromUser
+  getAllUsers, getUser, createUser, updateUserBychatId, deleteUserBychatId , getUserByNickname, getBelognedChatRoomFromUser
 }
