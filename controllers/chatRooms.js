@@ -1,6 +1,6 @@
 const ChatRoom = require('../models/ChatRoom')
 const Chat = require('../models/Chat')
-const User = require('../models/User')
+const User = require('../models/User');
 
 const createChatRoom = async (payload) => {
   const chatRoom = await ChatRoom.create(payload);
@@ -16,25 +16,7 @@ const createChatRoom = async (payload) => {
   return chatRoom;
 };
 
-const getAllChatRooms = async () => {
-  const chatRooms = await ChatRoom.find({});
-  return chatRooms;
-};
 
-const getChatRoomByUserId = async (user_id) => {
-  user_id = Number(user_id);
-  const chatRooms = await ChatRoom.find({
-    participants: {
-      $elemMatch: { participant_id: user_id }
-    }
-  }, { _id: 0, participants: 0, createdAt: 0, updatedAt: 0, __v: 0 })
-  return chatRooms
-};
-
-const updateBychatId = async (chatRoom_id, payload) => {
-  const chatRoom = await ChatRoom.findOneAndUpdate({ chatRoom_id }, payload, { new: true })
-  return chatRoom;
-}
 
 // 채팅방에 유저 추가
 const addUserToChatRoom = async (chatRoom_id, user_id) => {
@@ -50,7 +32,7 @@ const addUserToChatRoom = async (chatRoom_id, user_id) => {
 }
 
 // 채팅방에 유저 삭제
-const deleteUserToChatRoom = async (chatRoom_id, user_id) => {
+const deleteUserFromChatRoom = async (chatRoom_id, user_id) => {
   // 연관된 Chat 삭제 및 update
   await Chat.deleteMany({ chatRoom_id, sender: user_id })
   await Chat.updateMany({ chatRoom_id },
@@ -58,27 +40,25 @@ const deleteUserToChatRoom = async (chatRoom_id, user_id) => {
   )
   //연관된 ChatRoom update
   await ChatRoom.updateOne({ _id: chatRoom_id },
-    { participants: { $pull: { participant_id: user_id} } }
+    { participants: { $pull: { participant_id: user_id} } },
+    {new:true}
   )
-
-  await User.updateOne({ _id: user_id }, {
-    $pull: { chatRoomBelogned: chatRoom_id }
-  })
+  
+  await User.findOneAndUpdate({ _id: user_id }, {
+    $pull: { chatRoomBelonged:chatRoom_id }
+  },{new:true})
+  
 }
 
 const updateLastAccess = async function (name, userId) {
   
-  const chatRoom = await ChatRoom.updateOne({ name, participants:{$elemMatch:{"participant_id": userId }}},
+  const chatRoom = await ChatRoom.findOneAndUpdate({ name, participants:{$elemMatch:{"participant_id": userId }}},
     { '$set': { 'participants.$.last_access': new Date() } }
   )
-  return chatRoom._id
-}
-
-const deleteChatRoom = async (chatRoomId) => {
-  await ChatRoom.deleteOne({ _id: chatRoomId });
-  return true;
+  
+  return chatRoom?._id
 }
 
 module.exports = {
-  getAllChatRooms, getChatRoomByUserId, createChatRoom, updateBychatId, updateLastAccess, deleteChatRoom
+  createChatRoom, updateLastAccess, deleteUserFromChatRoom, addUserToChatRoom
 }

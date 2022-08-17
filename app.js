@@ -7,14 +7,15 @@ const app = express();
 const http = require('http');
 const server = http.createServer(app);
 
-// const socket_options = {
-//   cors: {
-//     origin: ['http://localhost:4500'],
-//     methods: ['GET', 'POST'],
-//   },
-// };
+const socket_options = {
+  cors: {
+    origin: "*",
+    methods: ['GET', 'POST'],
+  },
+  path: '/socket.io'
+};
 
-require('./socket')(server);
+require('./socket')(server, socket_options);
 
 const PORT = process.env.PORT || 4500;
 

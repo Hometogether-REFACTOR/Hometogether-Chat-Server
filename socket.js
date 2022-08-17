@@ -2,10 +2,8 @@ const SocketIO = require('socket.io');
 
 const {
 	createChatRoom,
-	deleteBychatId,
-	getAllChatRooms,
-	getChatRoomByUserId,
-	updateBychatId,
+	addUserToChatRoom,
+	deleteUserFromChatRoom,
 	updateLastAccess
 } = require('./controllers/chatRooms');
 const {
@@ -24,8 +22,8 @@ const Chat = require('./models/Chat');
 const ChatRoom = require('./models/ChatRoom');
 const User = require('./models/User');
 
-module.exports = (server) => {
-	const io = SocketIO(server, { path: '/socket.io' }); // path는 client와 연결하는 경로	
+module.exports = (server, options) => {
+	const io = SocketIO(server, options); // path는 client와 연결하는 경로	
 	let USERS = []; // socket에 연결된 유저 정보
 
 	// 소켓 연결 시
@@ -105,13 +103,14 @@ module.exports = (server) => {
 
 		// 메세지 확인 시 클라이언트 측에서 방번호(data.room_id)와 같이 전달
 		socket.on('checkMessage', async (data) => {
+			
 			let {name}=data;
 
 			const resultChatRoomId=await updateLastAccess(name, socket.userId)
 				.catch(err => {
 					console.log(err);
 				})
-
+			
 			await Chat.updateMany({
 				chatRoom_id: resultChatRoomId,
 				userReads: { $elemMatch: { "user_id": socket.userId, "isRead": false } }
@@ -175,23 +174,31 @@ module.exports = (server) => {
 			console.log(error);
 		});
 
-		socket.on('checkMyRoom', () => {
-			//소켓이 소속된 모든 방 정보 가져오기
-			let socketRoomName = [...socket.rooms].slice(1,);
-			let socketRoomList = [];
-			for (room of socketRoomName) {
-				socketRoomList.push(parseInt(room.substring(4)));
-			}
-			Chat.findYetReadChats(socket.userId, socketRoomList)
-				.then(count => {
-					socket.emit('serverResponse', {
-						sender: 'SERVER',
-						type: 'notice',
-						msg: `New ${count} message yet read!!`
-					});
-				})
+		// 유저가 읽지 않은 모든 채팅 수 방별로 가져오기
+		socket.on('checkMyRoom', async(data) => {
+			let {chatRooms}=data
+			let yetReads=await getYetReadChats(socket.userId, chatRooms)
 
+			socket.emit('serverResponse',{
+				sender:'SERVER',
+				type:'success',
+				msg:'Your notRead chatList by chatRoom.',
+				data:yetReads
+			})
+		})
+		
+		socket.on('exitChatRoomRequest',async(chatRoom)=>{
+			let chatRoom_id=chatRoom._id
+			await deleteUserFromChatRoom(chatRoom_id, socket.userId)
+			
+			let user = await getUser(socket.userId,{populate:true})
+			
+			console.log(user)
+			// 해당 유저가 소속된 모든 채팅방의 챗로그 가져오기
+
+			let chatList = await getAllChats({chatRoomIdList:user.chatRoomBelogned, populate:true})
+	
+			socket.emit('sendInitChatLog', {chatList, user} )
 		})
 	})
-
 }

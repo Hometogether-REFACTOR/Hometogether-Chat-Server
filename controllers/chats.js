@@ -1,6 +1,7 @@
 const Chat = require('../models/Chat');
 const ChatRoom = require('../models/ChatRoom');
 const User = require('../models/User');
+const mongoose=require('mongoose')
 
 const createChat = async (payload) => {
 	const userReads=[]
@@ -61,18 +62,65 @@ const getChatsByChatRoomId = async (_chatRoomId) => {
 	return chats;
 }
 
-const getYetReadChats = (senderId, chatRoomIds) => {
-	const chats = Chat.find(
-		// { chatRoomId: { $in: chatRoomIds } ,  "status.isRead": false ,
-		//  "sender.sender_id":{$ne: senderId} }
+const getYetReadChats = async (user_id, chatRooms) => {
+	
+	let chatRoomIds=[]
+	chatRooms.forEach(chatRoom=>{
+		chatRoomIds.push(chatRoom._id)
+	})
+	
+	const yetReadChats=await Chat.aggregate([
 		{
-			chatRoomId: { $in: chatRoomIds }, userReads: {
-				$elemMatch: { "userId": senderId, "isRead": false }
+			$match: {
+				chatRoom_id:{$in:chatRoomIds.map(function(id){return new mongoose.Types.ObjectId(id);})},
+				userReads: {
+					$elemMatch: {
+						user_id: new mongoose.Types.ObjectId(user_id), isRead: false
+					}
+				}
 			}
-		}
-	)
-
-	return chats.length;
+		},
+		{
+			$group: {
+					_id: '$chatRoom_id',
+					yetReads: { $count: {} }
+			}
+		},
+		{$lookup: {
+			from: 'chatrooms',
+			let:{
+				chatRoomId:'$_id'
+			},
+			pipeline:[
+				{
+					$match:{
+						$expr:{
+							$eq:[
+								"$_id",
+								"$$chatRoomId"
+							]
+						}
+					}
+				},
+				{
+					$project:{
+						_id:0,
+						name:1
+					}
+				}
+			],
+			as:"chatRoom"
+			// localField: '_id', foreignField:'_id', as: 'chatRoom'
+		}},
+	])
+	.then((results)=>{
+		results.map(function(result){
+			result.name=result.chatRoom[0].name
+			delete result.chatRoom;
+		})
+		return results;
+	})
+	return yetReadChats
 }
 
 const updateUserReeadsToRead = async (senderId, chatRoomId, payload) => {
