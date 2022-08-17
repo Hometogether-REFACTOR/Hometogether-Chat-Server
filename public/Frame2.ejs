@@ -1,7 +1,7 @@
 <script>
   let chatList; // 모든 채팅로그를 보유하고 있는 변수
   let user;
-  const url = 'http://localhost:8002';
+  const url = 'https://hometogether-chat-server.herokuapp.com';
 
   window.onload = async () => {
     const socket = io.connect(url, {
