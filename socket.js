@@ -13,7 +13,7 @@ const {
 	getYetReadChats,
 } = require('./controllers/chats');
 const {
-  createUser,getUser
+  createUser,getUser, getUserByNickname
 } =require('./controllers/users');
 
 const Chat = require('./models/Chat');
@@ -27,11 +27,13 @@ module.exports = (server, options) => {
 	// 소켓 연결 시
 	io.on('connection', async (socket) => {
 
-		socket.userId = socket.handshake.query.userId;
 		socket.nickname = socket.handshake.query.nickname;
 		
+		if(!socket.nickname){
+			return socket.disconnect(0);
+		}
 		// 새로운 유저라면 User document 생성, 그렇지 않으면 가져오기만함
-		const user = await getUser(socket.userId,{populate:true})
+		const user = await getUserByNickname(socket.nickname,{populate:true})
 			.then(async (user) => {
 				if (!user) { // 같은 닉네임을 가진 유저가 없을 때 신규 생성
 					user = await createUser({
@@ -45,11 +47,13 @@ module.exports = (server, options) => {
 			})
 			.catch(err=>console.log(err))
 		// USERS에서 넘겨받은 socket userId와 중복되는 값이 있으면 즉시 클라이언트 소켓 연결 해제
-		if (USERS.find(USER => USER.userId == user._id)) {
+		
+		if (USERS.find(USER => USER.nickname == user.nickname)) {
 			console.log(`duplicated:true`)
 			return socket.disconnect(0);
 		}else{
-			console.log('New client connected!', socket.userId);
+			socket.userId=user._id
+			console.log('New client connected!', socket.nickname);
 		}
 
 		// 새 소켓 추가
@@ -93,7 +97,7 @@ module.exports = (server, options) => {
 
 			const targetChat=await getChat(newChat._id, {populate:true})
 			
-			console.log(chatRoom.name)
+			console.log(targetChat)
 			io.to(chatRoom.name).emit('newChat',targetChat)
 
 			//Chat 새로 만들어준 후에 송신자의 isReads를 true로 업데이트(checkMessage)

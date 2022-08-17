@@ -21,11 +21,20 @@ const getUser = async (userId, options) => {
   return false
 }
 
-const getUserByNickname = async (nickname) => {
-  const users = await User.findOne({
-    nickname:nickname
-  }) 
-  return users
+const getUserByNickname = async (nickname, options) => {
+  try {
+    if(!options){
+      const users = await User.findOne({nickname})
+      return users
+    }else if(options.populate){
+      const users = await User.findOne({nickname})
+        .populate({path:"chatRoomBelonged", select:"_id name"})
+      return users
+    }
+  } catch (error) {
+    console.log('userId is invalidate')
+  }
+  return false
 };
 
 

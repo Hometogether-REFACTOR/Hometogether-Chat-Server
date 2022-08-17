@@ -10,8 +10,7 @@
         origin:'*'
       },
       query: {
-        userId,
-        nickname
+        nickname:nickname
       }
     });
 
@@ -102,6 +101,7 @@
     const setChatLogToRoom = () => {
       $('#chatBoard').empty();
       let selectedRoom = $("#chatRoom").val()
+      console.log(chatList)
       chatList.forEach(chat => {
         if (chat.chatRoom_id.name == selectedRoom) {
           $("#chatBoard").append(`<p>${chat.sender.nickname}: ${chat.msg}</p>`);

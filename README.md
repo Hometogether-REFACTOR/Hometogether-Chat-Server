@@ -16,3 +16,4 @@ MONGO_URI=mongodb://localhost:27017/chatLog
 # heroku cli commands
 - heroku info : heroku Web URL 등의 정보 가져오기
 - heroku restart
+- heroku logs -t : 헤로쿠 로그 계속 보기

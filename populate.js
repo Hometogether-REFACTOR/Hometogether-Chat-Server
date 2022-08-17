@@ -9,7 +9,7 @@ const {
 	createChatRoom
 } = require('./controllers/chatRooms');
 const {
-	createUser, deleteUserBychatId, getAllUsers, getUser, updateUserBychatId, getUserByNickname, getBelognedRoomFromUser
+	createUser,  getUser, getUserByNickname
 } = require('./controllers/users');
 
 const {
@@ -28,7 +28,7 @@ const start = async () => {
 
     await User.create(jsonUsers);
 
-    const users = await getAllUsers({})
+    const users = await User.find({});
     const userIds = []
 
     users.forEach(user => {
