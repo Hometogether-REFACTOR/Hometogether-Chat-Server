@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon app",
+    "populate": "node populate.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -26,6 +27,7 @@
     "https": "^1.0.0",
     "mongoose": "^6.5.2",
     "mongoose-sequence": "^5.3.1",
+    "nodemon": "^2.0.19",
     "socket.io": "^4.5.1",
     "ws": "^8.8.0"
   }
