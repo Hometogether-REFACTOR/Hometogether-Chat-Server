@@ -1,11 +1,14 @@
 <script>
   let chatList; // 모든 채팅로그를 보유하고 있는 변수
   let user;
-  const url = 'http://localhost:4500';
+  const url = 'http://localhost:8002';
 
   window.onload = async () => {
-    const socket = io(url, {
+    const socket = io.connect(url, {
       path: '/socket.io',
+      cors:{
+        origin:'*'
+      },
       query: {
         userId,
         nickname
@@ -18,7 +21,6 @@
       user = chatLogs.user
 
       $('#chatRoom').empty();
-      
 
       for (chatRoom of user.chatRoomBelonged) {
         let option = $(`<option>${chatRoom.name}</option>`)

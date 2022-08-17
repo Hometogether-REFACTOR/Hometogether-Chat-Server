@@ -5,19 +5,6 @@ const createUser = async (payload,options) => {
   return user;
 };
 
-const getAllUsers = async (options) => {
-  const { nickname } = options;
-
-  const queryObject={}
-
-  if(nickname){
-    queryObject.nickname=nickname
-  }
-
-  const users = await User.find(queryObject);
-  return users;
-};
-
 const getUser = async (userId, options) => {
   try {
     if(!options){
@@ -34,13 +21,6 @@ const getUser = async (userId, options) => {
   return false
 }
 
-const getBelognedChatRoomFromUser=async(userId)=>{
-  const user=await User.findOne({_id:userId})
-  .populate({path:"chatRoomBelonged", select:"_id, name"})
-  .select("chatRoomBelonged")
-  return user.chatRoomBelogned;
-}
-
 const getUserByNickname = async (nickname) => {
   const users = await User.findOne({
     nickname:nickname
@@ -48,17 +28,9 @@ const getUserByNickname = async (nickname) => {
   return users
 };
 
-const updateUserBychatId = async (UserId, payload) => {
-  const user = await user.findOneAndUpdate({ chatId }, payload, { new: true })
-  return user;
-}
-
-
-const deleteUserBychatId = async (chatId) =>{
-  await User.remove({ chatId });
-  return true;
-}
 
 module.exports = {
-  getAllUsers, getUser, createUser, updateUserBychatId, deleteUserBychatId , getUserByNickname, getBelognedChatRoomFromUser
+  getUser, 
+  createUser, 
+  getUserByNickname
 }

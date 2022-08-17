@@ -2,22 +2,20 @@ const SocketIO = require('socket.io');
 
 const {
 	createChatRoom,
-	addUserToChatRoom,
+	addUserToChatRoom, // 나중에쓸거
 	deleteUserFromChatRoom,
 	updateLastAccess
 } = require('./controllers/chatRooms');
 const {
 	createChat,
-	deleteChat,
 	getAllChats,
 	getChat,
-	getChatsByChatRoomId,
 	getYetReadChats,
-	updateUserReeadsToRead
 } = require('./controllers/chats');
 const {
-  createUser, deleteUserBychatId, getAllUsers,getUser,updateUserBychatId, getUserByNickname, getBelognedChatRoomFromUser
+  createUser,getUser
 } =require('./controllers/users');
+
 const Chat = require('./models/Chat');
 const ChatRoom = require('./models/ChatRoom');
 const User = require('./models/User');
