@@ -39,10 +39,16 @@ const deleteUserFromChatRoom = async (chatRoom_id, user_id) => {
     { userReads: { $pull: { user_id } } }
   )
   //연관된 ChatRoom update
-  await ChatRoom.updateOne({ _id: chatRoom_id },
-    { participants: { $pull: { participant_id: user_id} } },
-    {new:true}
+  const chatRoom = await ChatRoom.findOneAndUpdate({ _id: chatRoom_id },
+    { $pull: { participants: { participant_id: user_id } } },
+    { new: true }
   )
+  
+  if(chatRoom.participants.length==0){
+    console.log('채팅방 유저가 존재하지 않으므로 채팅방을 삭제합니다.')
+    await ChatRoom.deleteOne({ _id: chatRoom_id });
+  }
+
   
   await User.findOneAndUpdate({ _id: user_id }, {
     $pull: { chatRoomBelonged:chatRoom_id }

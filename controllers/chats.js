@@ -9,16 +9,17 @@ const createChat = async (payload) => {
 
 	chatRoom.participants.forEach(participant=>{
 		let isRead=false
-		if(participant.participant_id==payload.senderId){
+		if(participant.participant_id.toString()==payload.sender.toString()){
 			isRead=true
 		}
 		userReads.push({
 			user_id:participant.participant_id,
-			isRead:false
+			isRead
 		})
 	})
 	payload.userReads=userReads;
 
+	console.log(userReads)
 	const chat = await Chat.create(payload);
 	return chat;
 };

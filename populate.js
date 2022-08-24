@@ -38,10 +38,10 @@ const start = async () => {
     });
 
     const chatRoomIds=[]
-    for(let i=1;i<4;i++){
+    for(let i=0;i<4;i++){
       const chatRoom=await createChatRoom({
         name: `Room ${i}`,
-        participants: userIds
+        participants: userIds.slice(0,2)
       })
       .catch(err => console.log(err)) || {}
 

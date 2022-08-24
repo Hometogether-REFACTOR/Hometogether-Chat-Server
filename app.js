@@ -15,7 +15,13 @@ const socket_options = {
   path: '/socket.io'
 };
 
-require('./socket')(server, socket_options);
+const io = require('./socket')(server, socket_options);
+
+// socket nickname register middleware
+io.use((socket, next)=>{
+  socket.nickname = socket.handshake.query.nickname
+  next()
+})
 
 const PORT = process.env.PORT || 4500;
 
@@ -28,6 +34,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.use('/socket', require('./routes/main'))
+
 
 const start = async () => {
   try {

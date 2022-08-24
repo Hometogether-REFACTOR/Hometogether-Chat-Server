@@ -13,7 +13,7 @@ const {
 	getYetReadChats,
 } = require('./controllers/chats');
 const {
-  createUser,getUser, getUserByNickname
+  getAllUsers
 } =require('./controllers/users');
 
 const Chat = require('./models/Chat');
@@ -24,83 +24,103 @@ module.exports = (server, options) => {
 	const io = SocketIO(server, options); // path는 client와 연결하는 경로	
 	let USERS = []; // socket에 연결된 유저 정보
 
-	// 소켓 연결 시
+	/* 소켓 연결 시 최초 이벤트 */
 	io.on('connection', async (socket) => {
 
-		socket.nickname = socket.handshake.query.nickname;
+		const getInitChatLog= async(next)=>{
+			const user = await getAllUsers(socket.userId,{populate:true})
+			const chatList = await getAllChats({chatRoomIdList:user.chatRoomBelonged, populate:true})
+			next({chatList, user})
+		}
 		
+		//socket nickname이 없다면 바로 disconnect
 		if(!socket.nickname){
 			return socket.disconnect(0);
 		}
-		// 새로운 유저라면 User document 생성, 그렇지 않으면 가져오기만함
-		const user = await getUserByNickname(socket.nickname,{populate:true})
-			.then(async (user) => {
-				if (!user) { // 같은 닉네임을 가진 유저가 없을 때 신규 생성
-					user = await createUser({
-						nickname:socket.nickname
-					})
-					console.log(`New user ${user.nickname} is created.`);
-				}else{
-					socket.nickname=user.nickname
-				}
-				return user;
+
+		// 새로운 유저라면 User 생성, 그렇지 않으면 가져오기만함
+		const userCheck = await User.findOne({nickname:socket.nickname})
+			.catch(err=>{
+				console.log(err)
+				return socket.disconnect(0)
 			})
-			.catch(err=>console.log(err))
-		// USERS에서 넘겨받은 socket userId와 중복되는 값이 있으면 즉시 클라이언트 소켓 연결 해제
-		
-		if (USERS.find(USER => USER.nickname == user.nickname)) {
-			console.log(`duplicated:true`)
-			return socket.disconnect(0);
-		}else{
-			socket.userId=user._id
-			console.log('New client connected!', socket.nickname);
+
+		// 같은 닉네임을 가진 유저가 없을 때 신규 생성
+		if (!userCheck) { 
+			userCheck = await User.create({
+				nickname:socket.nickname
+			})
+			.catch(err=>{
+				console.log(err)
+				return socket.disconnect(0)
+			})
+			console.log(`새로운 사용자 ${userCheck.nickname}가 생성되었습니다.`);
 		}
 
-		// 새 소켓 추가
+		socket.userId=userCheck._id //소켓 객체에 userId 등록
+
+		// USERS에서 넘겨받은 socket userId와 중복되는 값이 있으면 즉시 클라이언트 소켓 연결 해제
+		// 추후 동시 접속도 가능하게 할 예정
+		
+		if (USERS.find(USER => USER.userId.toString() == socket.userId.toString())) {
+			let disconnectMsg	= `동일한 사용자가 이미 접속 중입니다.`
+			console.log(disconnectMsg)
+			socket.emit('custom_disconnect',disconnectMsg)
+			return socket.disconnect();
+		}else{
+			socket.userId=userCheck._id
+			console.log(`${socket.nickname} 님이 연결되었습니다!`);
+		}
+
+		// USERS에 새 소켓 정보 추가
 		USERS.push({
 			socketId: socket.id,
 			userId: socket.userId,
-			nickname: user.nickname
+			nickname: socket.nickname
 		})
 
-		// 유저가 소속된 모든 chatRoom을 population하여 가져오기
+		const user = await getAllUsers(socket.userId,{populate:true})
+		const chatList = await getAllChats({chatRoomIdList:user.chatRoomBelonged, populate:true})
+
 		user.chatRoomBelonged.forEach(chatRoom=>{
 			socket.join(chatRoom.name)
 		})
-		// 해당 유저가 소속된 모든 채팅방의 챗로그 가져오기
-		let chatList = await getAllChats({chatRoomIdList:user.chatRoomBelogned, populate:true})
 
-		socket.emit('sendInitChatLog', {chatList, user} )
-		///////////////////////////////////////////////////////////
+		socket.emit('sendInitChatLog', {user,chatList} )
+		
+		/* 소켓 연결 시 최초 이벤트 끝 */
 
-		//* 소켓 연결 해제*//
+		// 소켓 연결 해제 
 		socket.on('disconnect', () => {
-			console.log(`A client has disconnected.`, socket.id);
+			console.log(`${socket.nickname || '알 수 없는 유저'}의 연결이 종료되었습니다.`, );
 			USERS = USERS.filter(USER => USER.socketId != socket.id);
 		});
 
-		// room id가 담긴 message를 보내면 소속된 방에 emit, mongoDB에 chat기록 저장
+		// chatRoomId가 담긴 message를 보내면 소속된 방에 emit, mongoDB에 chat기록 저장
 		socket.on('sendMessage', async (data) => {
 			const chatRoom=await ChatRoom.findById(data.chatRoom_id)
-			console.log(data.msg)
+
+			if(!chatRoom){
+				socket.emit('error', `채팅방 ID가 ${chatRoom_id}인 채팅방이 존재하지 않습니다.`)
+			}
+
 			const newChat=await createChat({
 				chatRoom_id:data.chatRoom_id,
 				msg:data.msg,
 				sender:socket.userId
 			})
-
-			socket.emit('serverResponse',{
-				sender:'SERVER',
-				type:'success',
-				msg:'successfully send message!'
-			})
+				.catch(err => {
+					console.log(err)
+					return socket.emit('error','서버 내부 오류 발생')
+				})
 
 			const targetChat=await getChat(newChat._id, {populate:true})
+				.catch(err => {
+					console.log(err)
+					return socket.emit('error','서버 내부 오류 발생')
+				})
 			
-			console.log(targetChat)
 			io.to(chatRoom.name).emit('newChat',targetChat)
-
-			//Chat 새로 만들어준 후에 송신자의 isReads를 true로 업데이트(checkMessage)
 		});
 
 		// 메세지 확인 시 클라이언트 측에서 방번호(data.room_id)와 같이 전달
@@ -124,11 +144,12 @@ module.exports = (server, options) => {
 			let { userIdToJoin, name } = data
 			
 			if (!userIdToJoin) {
-				return socket.emit('serverResponse', {
-					sender: 'SERVER',
-					type: 'error',
-					msg: 'User Id to join room is required.'
-				});
+				// return socket.emit('serverResponse', {
+				// 	sender: 'SERVER',
+				// 	type: 'error',
+				// 	msg: 'User Id to join room is required.'
+				// });
+				throw new Error('awefewaf');
 			}
 
 			let participants = [{ participant_id: socket.userId }]
@@ -144,12 +165,12 @@ module.exports = (server, options) => {
 			await createChatRoom({
 				name, participants
 			})
-				.then(result => {
-					socket.emit('serverResponse', {
-						sender: 'SERVER',
-						type: 'success',
-						msg: 'Successfully create new room.'
-					})
+				.then(async(result) => {
+					let user = await getAllUsers(socket.userId,{populate:true})
+		
+					let chatList = await getAllChats({chatRoomIdList:user.chatRoomBelogned, populate:true})
+					socket.emit('sendInitChatLog', {chatList, user} )
+
 					result.participants.forEach((user)=>{
 						const targetSocket=USERS.find(USER=>USER.userId==user.participant_id)
 						
@@ -172,10 +193,7 @@ module.exports = (server, options) => {
 			})
 		})
 
-		socket.on('error', (error) => {
-			console.log(error);
-		});
-
+		
 		// 유저가 읽지 않은 모든 채팅 수 방별로 가져오기
 		socket.on('checkMyRoom', async(data) => {
 			let {chatRooms}=data
@@ -193,14 +211,12 @@ module.exports = (server, options) => {
 			let chatRoom_id=chatRoom._id
 			await deleteUserFromChatRoom(chatRoom_id, socket.userId)
 			
-			let user = await getUser(socket.userId,{populate:true})
-			
-			console.log(user)
-			// 해당 유저가 소속된 모든 채팅방의 챗로그 가져오기
-
-			let chatList = await getAllChats({chatRoomIdList:user.chatRoomBelogned, populate:true})
-	
-			socket.emit('sendInitChatLog', {chatList, user} )
+			getInitChatLog((result)=>{
+				socket.emit('sendInitChatLog', result )
+			})
 		})
+
 	})
+
+	return io;
 }
