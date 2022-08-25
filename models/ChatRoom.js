@@ -43,31 +43,18 @@ const preDelete = async function (next) {
 	next();
 };
 
-const postSave = async (next) => {
-	console.log('New chatRoom has created!')
-	const doc = await this.model.findOne(this.getFilter())
-
-	participantIds = []
-
-	doc.participants.forEach(participant => {
-		participantIds.push(participant.participant_id)
-	})
-	await User.updateMany({ _id: { $in: participantIds } }, { $push: { chatRoomBelogned: doc._id } })
-	next();
-}
-chatRoomSchema.pre('deleteOne', { document: false, query: true }, preDelete)
-// chatRoomSchema.post('save', { document: false, query: true }, postSave)
-//chatRoom 생성 시 모든 참여자 객체에 할당된 방 push
-
-
-// chatRoomSchema.post('save', async (doc) => {
+// const postSave = async (next) => {
 // 	console.log('New chatRoom has created!')
+// 	const doc = await this.model.findOne(this.getFilter())
+
 // 	participantIds = []
-// 	console.log(doc.participants);
+
 // 	doc.participants.forEach(participant => {
 // 		participantIds.push(participant.participant_id)
 // 	})
 // 	await User.updateMany({ _id: { $in: participantIds } }, { $push: { chatRoomBelogned: doc._id } })
-// })
+// 	next();
+// }
+chatRoomSchema.pre('deleteOne', { document: false, query: true }, preDelete)
 
 module.exports = mongoose.model('ChatRoom', chatRoomSchema)

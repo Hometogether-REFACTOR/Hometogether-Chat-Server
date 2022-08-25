@@ -20,7 +20,19 @@ const io = require('./socket')(server, socket_options);
 // socket nickname register middleware
 io.use((socket, next)=>{
   socket.nickname = socket.handshake.query.nickname
-  next()
+
+  let myString='weafwealfjkawehfawe'
+
+  if(socket.handshake.query.token && socket.handshake.query.token == myString){
+    next()
+  }
+  else {
+    return socket.disconnect(0);
+  }
+    
+  // 이곳에서 nickname(또는 id값)과 일치하는 redis 문자열을 socket.handshake.query.token 값과 비교
+  // 일치하지 않는다면 바로 disconnect
+  
 })
 
 const PORT = process.env.PORT || 4500;

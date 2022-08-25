@@ -109,16 +109,16 @@ module.exports = (server, options) => {
 				msg:data.msg,
 				sender:socket.userId
 			})
-				.catch(err => {
-					console.log(err)
-					return socket.emit('error','서버 내부 오류 발생')
-				})
+			.catch(err => {
+				console.log(err)
+				return socket.emit('error','서버 내부 오류 발생:\n'+err.message)
+			})
 
 			const targetChat=await getChat(newChat._id, {populate:true})
-				.catch(err => {
-					console.log(err)
-					return socket.emit('error','서버 내부 오류 발생')
-				})
+			.catch(err => {
+				console.log(err)
+				return socket.emit('error','서버 내부 오류 발생:\n'+err.message)
+			})
 			
 			io.to(chatRoom.name).emit('newChat',targetChat)
 		});
@@ -129,67 +129,82 @@ module.exports = (server, options) => {
 			let {name}=data;
 
 			const resultChatRoomId=await updateLastAccess(name, socket.userId)
-				.catch(err => {
-					console.log(err);
-				})
+			.catch(err => {
+				console.log(err)
+				return socket.emit('error','서버 내부 오류 발생:\n'+err.message)
+			})
 			
 			await Chat.updateMany({
 				chatRoom_id: resultChatRoomId,
 				userReads: { $elemMatch: { "user_id": socket.userId, "isRead": false } }
 			},
 				{ '$set': { 'userReads.$.isRead': true } })
+				.catch(err => {
+					console.log(err)
+					return socket.emit('error','서버 내부 오류 발생:\n'+err.message)
+				})
 		})
 
 		socket.on('newRoomRequest', async (data) => {
-			let { userIdToJoin, name } = data
+			let { userIdToJoin, chatRoomName } = data
 			
-			if (!userIdToJoin) {
-				// return socket.emit('serverResponse', {
-				// 	sender: 'SERVER',
-				// 	type: 'error',
-				// 	msg: 'User Id to join room is required.'
-				// });
-				throw new Error('awefewaf');
+			console.log(data)
+			if (!userIdToJoin || !chatRoomName) {
+				return socket.emit('error', '채팅에 참여할 유저 아이디와 채팅방 이름을 바르게 입력하세요.');
 			}
 
 			let participants = [{ participant_id: socket.userId }]
 
 			userIdToJoin.trim().split(/,| /).forEach(userId => {
-				if ((userId) != socket.userId) {
+				if ((userId) != socket.userId.toString()) {
 					participants.push({
 						participant_id: userId
 					})
 				}
 			})
-
+			
 			await createChatRoom({
-				name, participants
+				name: chatRoomName, participants
 			})
 				.then(async(result) => {
-					let user = await getAllUsers(socket.userId,{populate:true})
-		
-					let chatList = await getAllChats({chatRoomIdList:user.chatRoomBelogned, populate:true})
-					socket.emit('sendInitChatLog', {chatList, user} )
+
+					getInitChatLog((result)=>{
+						socket.join(chatRoomName)
+						socket.emit('sendInitChatLog', result )
+					})
 
 					result.participants.forEach((user)=>{
-						const targetSocket=USERS.find(USER=>USER.userId==user.participant_id)
-						
-						if(targetSocket){
+						const targetSocket=USERS.find(USER=>USER.userId.toString()==user.participant_id.toString())
+						if(targetSocket && targetSocket.userId.toString() !=socket.userId.toString()){
 							io.to(targetSocket.socketId).emit('joinRoomRequest',result._id)
 						}
+						else{
+							return socket.emit('serverResponse', {
+								sender: 'SERVER',
+								type: 'success',
+								msg: '채팅방을 성공적으로 생성했습니다!'
+							});
+						}
 					})	
+				})
+				.catch(err => {
+					console.log(err)
+					return socket.emit('error','서버 내부 오류 발생:\n'+err.message)
 				})
 		})
 
 		socket.on('joinRoomResponse', async(chatRoomId) => {
 			const chatRoom=await ChatRoom.findById(chatRoomId)
+			if(!chatRoom){
+				return socket.emit('error','채팅방 정보가 없습니다.')
+			}
 			socket.join(chatRoom.name);
 
 			console.log(`User with id:${socket.userId} has joined the ${chatRoom.name}`)
 			socket.emit('serverResponse',{
 				sender:'SERVER',
 				type:'success',
-				msg:'Successfully join the room.'
+				msg:`새 채팅방 ${chatRoom.name}에 초대되었습니다.`
 			})
 		})
 
@@ -210,10 +225,14 @@ module.exports = (server, options) => {
 		socket.on('exitChatRoomRequest',async(chatRoom)=>{
 			let chatRoom_id=chatRoom._id
 			await deleteUserFromChatRoom(chatRoom_id, socket.userId)
-			
+				
 			getInitChatLog((result)=>{
 				socket.emit('sendInitChatLog', result )
 			})
+				.catch(err => {
+					console.log(err)
+					return socket.emit('error','서버 내부 오류 발생:\n'+err.message)
+				})
 		})
 
 	})
