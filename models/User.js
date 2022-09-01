@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema
 const ChatRoom=require('./ChatRoom')
+const FKHelper=require('../modules/FKhelper')
 
 const userSchema = new mongoose.Schema({
   nickname:{
@@ -10,7 +11,14 @@ const userSchema = new mongoose.Schema({
   },
   chatRoomBelonged: [{
     type: Schema.Types.ObjectId,
-    ref: 'ChatRoom'
+    ref: 'ChatRoom',
+    validate: {
+      isAsync: true,
+      validator: function(v) {
+          return FKHelper(mongoose.model("ChatRoom"), v)
+      },
+      message: `ChatRoom doesn't exist.`
+    }
   }],
 },
   {

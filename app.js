@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
+require('express-async-errors');
 
 const socket_options = {
   cors: {
@@ -21,18 +22,18 @@ const io = require('./socket')(server, socket_options);
 io.use((socket, next)=>{
   socket.nickname = socket.handshake.query.nickname
 
-  let myString='weafwealfjkawehfawe'
+  let myString='weafwealfjkddawehfawe'
 
   if(socket.handshake.query.token && socket.handshake.query.token == myString){
     next()
   }
   else {
-    return socket.disconnect(0);
+    console.log('일치하지 않음')
+    next(new Error('연결 실패'))
   }
     
   // 이곳에서 nickname(또는 id값)과 일치하는 redis 문자열을 socket.handshake.query.token 값과 비교
   // 일치하지 않는다면 바로 disconnect
-  
 })
 
 const PORT = process.env.PORT || 4500;

@@ -1,6 +1,6 @@
 const User = require('../models/User')
 
-const getAllUsers = async (userId, options) => {
+const getUser = async (userId, options) => {
   try {
     if(!options){
       const users = await User.findOne({_id:userId})
@@ -11,11 +11,11 @@ const getAllUsers = async (userId, options) => {
       return users
     }
   } catch (error) {
-    console.log('userId is invalidate')
+    throw new Error('유저 아이디가 올바르지 않습니다. 다시 시도해주세요.')
   }
   return false
 }
 
 module.exports = {
-  getAllUsers
+  getUser
 }

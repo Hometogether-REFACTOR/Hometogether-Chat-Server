@@ -1,6 +1,5 @@
 const Chat = require('../models/Chat');
 const ChatRoom = require('../models/ChatRoom');
-const User = require('../models/User');
 const mongoose=require('mongoose')
 
 const createChat = async (payload) => {
@@ -19,7 +18,6 @@ const createChat = async (payload) => {
 	})
 	payload.userReads=userReads;
 
-	console.log(userReads)
 	const chat = await Chat.create(payload);
 	return chat;
 };
@@ -43,20 +41,6 @@ const getAllChats = async (options) => {
 
 	return chats;
 };
-
-const getChat = async (chatId, options) => {
-	const {populate}=options
-	let chat;
-	if(populate){
-		chat= await Chat.findById(chatId)
-		.populate({path:"userReads.user_id",select:'_id nickname'})
-		.populate({path:'chatRoom_id',select:'_id name'})
-		.populate({path:"sender", select:"_id nickname"})
-	}else{
-		chat = await Chat.findById(chatId)
-	}
-	return chat;
-}
 
 const getYetReadChats = async (user_id, chatRooms) => {
 	
@@ -123,6 +107,5 @@ const getYetReadChats = async (user_id, chatRooms) => {
 module.exports = {
 	createChat, 
 	getAllChats, 
-	getChat,
 	getYetReadChats, 
 }

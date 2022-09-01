@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const User = require('./User');
 const Chat = require('./Chat');
+const FKHelper=require('../modules/FKhelper')
 
 const chatRoomSchema = new mongoose.Schema({
 	name: { // 채팅방 이름
@@ -12,8 +13,15 @@ const chatRoomSchema = new mongoose.Schema({
 	participants: [new mongoose.Schema({
 		participant_id: {
 			type: Schema.Types.ObjectId,
-			ref: 'Chat',
-			required: true
+			ref: 'User',
+			required: true,
+			validate: {
+				isAsync: true,
+				validator: function(v) {
+						return FKHelper(mongoose.model("User"), v)
+				},
+				message: `User doesn't exist.`
+			}
 		},
 		last_access: {
 			type: Date,
